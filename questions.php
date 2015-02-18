@@ -24,13 +24,13 @@ mysql_select_db("trivia_game", $connectID)
 <?php
  include('pageintro.inc.php');
  
-if($_POST['submitsingle']){
+if(isset($_POST['submitsingle'])){
 	insertsq();
 	//getlast();
 	//testall();
 }//end if question is entered
 
-if($_POST['submitmulti']){
+if(isset($_POST['submitmulti']) ){
  insertmq();
  //getlast();
  //testall();
@@ -59,7 +59,7 @@ if($question==""){
 	$myErrors[] .= "please select a category";
 	
 }
-	echo $catID;
+
 if(count($myErrors)>0){
 echo "<p class='warning' >";
 	foreach($myErrors as $val){
@@ -70,7 +70,7 @@ echo "<p class='warning' >";
 }else{
 
 	// write to database
-	mysql_query("INSERT into questions (question, answer, catID) 
+	mysql_query("INSERT into questions (question, answer, catID)
 			     VALUES ('".$question."', '".$answer."', '".$catID."')", $connectID)   
 			    or die ("Unable to insert record into database");
 			    
@@ -121,14 +121,15 @@ or die("unable to select-catoptions");
 
 		while ($row = mysql_fetch_array($catSelectOptions)) {
 			
-    			$output.= "<option value='".$row['cID']."'> ". $row['category']."</option>\n";
+    			$output.= "<option value='".$row['id']."'> ". $row['category']."</option>\n";
     			
     			}
     			
     			return $output;
 		
 }
-
+$question = '';
+$answer = '';
 ?>
     
 <div id="leftsingle">
@@ -161,7 +162,7 @@ or die("unable to select-catoptions");
 	<input type="submit" name="submitmulti" value="Enter">
 	</form>
 </div>
-	<div style="clear:all;">
+	<div style="clear:both;">
 	<?php
 	function testall(){
 	global $connectID;

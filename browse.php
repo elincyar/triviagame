@@ -16,9 +16,9 @@ include("dbconnect.inc.php");
 mysql_select_db("trivia_game", $connectID)
   or die ("Unable to select database");
   
-  if($_POST['count']){
+  if(isset($_POST['count'])){
   	clearCount();
-  }else if($_POST['answers']){
+  }else if(isset($_POST['answers']) ){
   	clearAnswers();
   }
   
@@ -69,8 +69,8 @@ switch($a){
 	}
 	
 
-$myDataID = mysql_query("SELECT questions.question, questions.answer, questions.catID, questions.answeredRight AS AR, questions.countWrong AS CW, categories.category from questions, categories WHERE questions.catID =categories.cID", $connectID)
-or die (" Can't get data");
+$myDataID = mysql_query("SELECT questions.question, questions.answer, questions.catID, questions.answeredRight AS AR, questions.countWrong AS CW, categories.category from questions, categories WHERE questions.catID =categories.id", $connectID)
+or die (mysql_error());
 	print "<table border='1'>";
 	
 	$i = 0;

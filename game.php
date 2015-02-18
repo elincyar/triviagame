@@ -19,10 +19,19 @@ include("dbconnect.inc.php");
 mysql_select_db("trivia_game", $connectID)
   or die ("Unable to select database");
   
- 
+ if(isset($_GET['reset_game'])){
+	 unset($_SESSION['teams'] );
+	 $_SESSION['team1name'] = null;
+	 $_SESSION['team2name'] = null;
+	 $_SESSION['team1SS'] = 0;
+	 $_SESSION['team2SS'] = 0;
+
+	 echo 'reset';
+	 exit;
+ }
   
-  if($_POST['qenter']){
-	`$t1p = $_POST['t1points'];
+  if(isset($_POST['qenter'] )){
+	$t1p = $_POST['t1points'];
    	 $t2p = $_POST['t2points'];
    	 $round= $_POST['rid'];
    	 switch ($round){
@@ -48,7 +57,7 @@ mysql_select_db("trivia_game", $connectID)
 	//echo $qid;
 	//echo $_POST['wrong'];
 	
-	 mysql_query('UPDATE questions SET answeredRight=1 WHERE qID="'.$qid.'"', $connectID)
+	 mysql_query('UPDATE questions SET answeredRight=1 WHERE id="'.$qid.'"', $connectID)
 	 or die("unable to update-0");
 	
 	/*if($a=="wrong"){
@@ -67,13 +76,15 @@ mysql_select_db("trivia_game", $connectID)
 //  go to round one
 // same function but with a round tyoe
 // round one
-if(!isset($_SESSION['teams']){
+if(!isset($_SESSION['teams']) || $_SESSION['teams'] === false ){
 	showNewTeams();
 }else{
 	 start();
 }
 
 function showNewTeams(){
+
+
 ?>
 <form id="newGame" method="post" action="<?php $_SERVER['PHP_SELF'] ?>" >
 	Team one name: <input type="text"  name="t1n" /><br />
@@ -82,29 +93,37 @@ function showNewTeams(){
 </form>
 	
 <?php
-	if($_POST['createTeams']){
-	$_SESSION['teams'] = true;
+	if(isset($_POST['createTeams'] )){
+
 	$_SESSION['team1name'] = $_POST['t1n'];
    	$_SESSION['team2name'] = $_POST['t2n'];
    	$_SESSION['team1SS'] = 0;
    	$_SESSION['team2SS'] = 0;
 	
-   	
+   	try{
    	mysql_query("INSERT into score (teamName, datePlayed) 
-			     VALUES ('".$$_POST['t1n']."', '". date('m-t-y, g:i:s a e').")", $connectID)   
-			    or die ("Unable to insert record into database");
+			     VALUES ('".$_POST['t1n']."', NOW())")
+			    or die (mysql_error());
 		$_SESSION['team1ID'] = mysql_insert_id();
 	mysql_query("INSERT into score (teamName, datePlayed) 
-			     VALUES ('".$$_POST['t2n']."', '". date('m-t-y, g:i:s a e').")", $connectID)   
-			    or die ("Unable to insert record into database");
+			     VALUES ('".$_POST['t2n']."', NOW())")
+			    or die (mysql_error());
 		$_SESSION['team2ID'] = mysql_insert_id();
+
+	} catch (Exception $e){
+
+	}
+
+
+	$_SESSION['teams'] = true;
+	}
 	
 	
 }//end shownewteams
 function start(){
-    echo "Your Teams are ".$_SESSION['team1'] ." and ".	$_SESSION['team2'] .""; 
+    echo "Your Teams are ".$_SESSION['team1name'] ." and ".	$_SESSION['team2name'] ."";
    
-    if(isset($_GET['r']){
+    if(isset($_GET['r']) ){
     	$round=	$_GET['r'];
     		play($round);
     	}else{
@@ -113,21 +132,24 @@ function start(){
 }//end start
   
   function play($round){
-  	 if($_SESSION['team1SS']<15 || $_SESSION['team2SS']<15){
+
+  	 if($_SESSION['team1SS']<15 && $_SESSION['team2SS']<15){
+
+global $connectID;
   ?>
     
   
     <h2>Select a category</h2>
 
 	
-	<form id="play" method="post" action="<?php $_SERVER['PHP_SELF'] ?>" >
+	<form id="play" method="post" action="<?php echo $_SERVER['REQUEST_URI'] ?>" >
 	<?php
 	// make the  dice looking radio buttons
 	$catRadio = mysql_query("SELECT * from categories", $connectID);
 
 		while ($row = mysql_fetch_array($catRadio)) {
 			echo "<span class='cat ".$row['dieColor']."'>".$row['category']."<br />\n
-			<input type='radio' name='category'  value='".$row['cID']."' /></span>\n";
+			<input type='radio' name='category'  value='".$row['id']."' /></span>\n";
 		}
 		
 	?>
@@ -138,12 +160,12 @@ function start(){
 <div id="questionoutput">
 <?php
 
-if($_POST['getq']){
+if(isset($_POST['getq'] )){
 
 	$category =$_POST['category'];
 	//echo $category;
 	// get all the available questions;
-	$availableqs = mysql_query('SELECT qID FROM questions  WHERE catID="'.$category.'" AND answeredRight="False"', $connectID)   
+	$availableqs = mysql_query('SELECT id FROM questions  WHERE catID="'.$category.'" AND answeredRight="False"', $connectID)
 			    or die ("Unable to get record from database");
 	//read from database
 	
@@ -157,21 +179,21 @@ if($_POST['getq']){
 		$randy =  array_rand($readyqIDs,1);
 		$qta =  $readyqIDs[$randy];
 
-		$catID = mysql_query("SELECT category FROM categories WHERE cID='".$category."'",$connectID);
+		$catID = mysql_query("SELECT category FROM categories WHERE id='".$category."'",$connectID);
 		$catName = mysql_fetch_row($catID);
 		
 		// gets the questions of the random id
-		$questionToAsk =mysql_query("SELECT * FROM questions WHERE qID='". $qta."'",$connectID);
+		$questionToAsk =mysql_query("SELECT * FROM questions WHERE id='". $qta."'",$connectID);
 		// echo the table of the quesiton
-		echo "<form method='post' action='".$_SERVER['PHP_SELF']."' id='question'>";
-		echo "<table border='1'><caption>Randomly selected \"".$catName2[0]."\" Question</caption>";
+		echo "<form method='post' action='".$_SERVER['REQUEST_URI']."' id='question'>";
+		echo "<table border='1' width='100%'><caption>Randomly selected \"".$catName[0]."\" Question</caption>";
 			while ($row = mysql_fetch_array($questionToAsk)) {
 			echo "<tr><td><strong>Question:</strong>".$row['question']."</td><td>Right <input type='radio' name='answer' value='right' /></td></tr>\n";
 			echo "<tr><td> <strong>Answer:</strong><a href='#' id='hidAnswer'>".$row['answer']."</a></td><td>Wrong <input type='radio' name='answer' value='wrong' /></td></tr>";
 			echo "<tr><td>".$_SESSION['team1name'] ."</td><td>0 pts:<input type='radio' name='t1points' value='0' checked> \n
-			1 pt:<input type='radio' name='t1points' value='1'>2 pt:<input type='radio' name='t1points' value='.5'></td></tr>";
+			1 pt:<input type='radio' name='t1points' value='1'>1/2 pt:<input type='radio' name='t1points' value='.5'></td></tr>";
 			echo "<tr><td>".$_SESSION['team2name'] ."</td><td>0 pts:<input type='radio' name='t2points' value='0' checked> \n
-			1 pt:<input type='radio' name='t2points' value='1'>2 pt:<input type='radio' name='t2points' value='.5'></td></tr>";
+			1 pt:<input type='radio' name='t2points' value='1'>1/2 pt:<input type='radio' name='t2points' value='.5'></td></tr>";
 		
 			}
 		echo "</table>";
@@ -187,11 +209,12 @@ if($_POST['getq']){
 	}//if getq
 	
 	}else {
-	echo "<h2> Round $round  Results</h2>"
+	global $connectID;
+	echo "<h2> Round $round  Results</h2>";
 	echo "<p>". $_SESSION['team1name'] ." has ". $_SESSION['team1SS'] ."</p>";
-	 mysql_query('INSERT into score (roundOneSub) VALUES ('.$_SESSION['team1SS'].') WHERE sID = "'. $_SESSION['team1ID'].'"', $connectID);
+	 mysql_query('INSERT into score (roundOneSub) VALUES ('.$_SESSION['team1SS'].') WHERE id = "'. $_SESSION['team1ID'].'"', $connectID);
 	echo "<p>". $_SESSION['team2name'] ." has ". $_SESSION['team2SS'] ."</p>";
-	 mysql_query('INSERT into score (roundOneSub) VALUES ('.$_SESSION['team2SS'].') WHERE sID = "'. $_SESSION['team2ID'].'"', $connectID);
+	 mysql_query('INSERT into score (roundOneSub) VALUES ('.$_SESSION['team2SS'].') WHERE id = "'. $_SESSION['team2ID'].'"', $connectID);
 	 
 	 //testing purposes
 	$myDataID = mysql_query("SELECT * from score", $connectID);
